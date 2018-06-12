@@ -1,26 +1,26 @@
 ---
-# tasks file for ar_munin_memory_per_process_plugin
+# tasks file for ar_munin_resource_per_process_plugin
 
 - block:
 
-    - name: Create {{ar_munin_memory_pp_plugin_target_dir}} if needed
+    - name: Create {{ar_munin_resource_pp_plugin_target_dir}} if needed
       file:
-        path: "{{ar_munin_memory_pp_plugin_target_dir}}"
+        path: "{{ar_munin_resource_pp_plugin_target_dir}}"
         state: directory
         mode: 0755
     
-    - name: Create {{ar_munin_memory_pp_plugin_plugin_name}} file in {{ar_munin_memory_pp_plugin_target_dir}}
+    - name: Create {{ar_munin_memory_pp_plugin_name}} file in {{ar_munin_memory_pp_plugin_target_dir}}
       template:
-        src: "{{ar_munin_memory_pp_plugin_name}}.j2"
-        dest: "{{ar_munin_memory_pp_plugin_target_dir}}/{{ar_munin_memory_pp_plugin_name}}"
+        src: "{{ar_munin_resource_pp_plugin_name}}.j2"
+        dest: "{{ar_munin_resource_pp_plugin_target_dir}}/{{ar_munin_resource_pp_plugin_name}}"
         mode: 0755
         backup: yes
       notify : restart munin-node
     
     - name: Enable (symlink) custom plugins
       file:
-        src: "{{ar_munin_memory_pp_plugin_target_dir}}/{{ar_munin_memory_pp_plugin_name}}"
-        dest: '/etc/munin/plugins/{{ar_munin_memory_pp_plugin_name}}'
+        src: "{{ar_munin_resource_pp_plugin_target_dir}}/{{ar_munin_resource_pp_plugin_name}}"
+        dest: '/etc/munin/plugins/{{ar_munin_resource_pp_plugin_name}}'
         state: link
       notify : restart munin-node
 

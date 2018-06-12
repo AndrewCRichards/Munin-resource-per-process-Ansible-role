@@ -38,6 +38,11 @@ Munin plugin to graph specified processes' %memory usage; uses the output of the
 'ps' command. Note that 'ps' output should not be considered fully accurate, so this
 plugin should be used to get an idea of trends of memory use; actual memory use will
 be a bit different; please read Internet posts on this subject to understand why.
+As well as the fundamental limitations of 'ps', intermittently-running processes
+that aren't running at the exact same time as 'ps' won't show up: The plugin is
+only really well-suited to daemon-type programs that run continuously. Similarly
+programs that have have intense brief spikes of memory use won't be accurately
+graphed for the same reason.
 
 More info: http://free.acrconsulting.co.uk/other/munin-plugins.html#rpp
 
@@ -48,7 +53,11 @@ plugin script, so (at least currently) the settings for the script (basically th
 list of processes to be graphed) are set in the Ansible inventory. There are two
 special process names: 'kernel' sums the processes that show up as [process_name]
 in the ps listing; this is primarily kernel threads and system processes. 'other'
-is all 'ps' entries that aren't explicitly listed.
+is all 'ps' entries that aren't explicitly listed. Note that processes where an
+absolute path is included have the path stripped.
+
+It is also possible to specify mappings to rename processes in the graph output,
+or to have a set of mappings rename entries to a single aggregated value.
 
 =head1 MAGIC MARKERS
 
@@ -76,7 +85,7 @@ function show_config {
     echo 'graph_vlabel %memory'
     echo 'graph_scale no'
     echo 'graph_info This graph shows the %memory used by specified processes.'
-    echo 'graph_category system'
+    echo 'graph_category processes'
     #echo 'graph_period second'
 
 {% for name in ar_munin_memory_pp_plugin_services -%}
@@ -94,19 +103,19 @@ function show_stats() {
 # notes on the awk code:
 #   $11~"^\\["        - to match ps [process_name] entries (typically kernel/system)
 #   $11~"^/" {sub...  - strip path components of process name
-#   $11~"^dovecot/"   - aggregate various dovecot process names as a single 'dovecot' entry
 
     ps --no-headers auxw | \
       awk '   BEGIN           {
 {% for name in ar_munin_memory_pp_plugin_services -%}
-{{"                               "}}services_list["{{name}}"]=1;
-{{"                               "}}mem_usage["{{name}}"]=0;
+{{"                               "}}services_list["{{name}}"]=1; mem_usage["{{name}}"]=0;
 {% endfor -%}
 {{"                             "}} };
               $11~"^\\["      {$11="kernel"};
               $11~"^/"        {sub("^.*/","",$11)};
-              $11~"^dovecot/" {$11="dovecot"};
-                              {if (!($11 in services_list)) $11="other"};
+{% for mapping in ar_munin_memory_pp_plugin_mappings -%}
+{{"              "}}$11~"{{mapping.pattern}}"  {$11="{{mapping.newname}}"};
+{% endfor -%}
+{{"                              "}}{if (!($11 in services_list)) $11="other"};
                               {mem_usage[$11]+=$4};
               END             {for (item in services_list)
                                  if (item in mem_usage) print item ".value", mem_usage[item];
