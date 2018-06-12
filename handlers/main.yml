@@ -1,0 +1,8 @@
+---
+# handlers file for ar_munin_memory_per_process_plugin
+- name: restart munin-node
+  become: True
+  service:
+    name: "munin-node"
+    state: restarted
+

@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# {{ansible_managed}}
+
+# Plugin for Munin to pull out %memory usage for specified processes from 'ps' output.
+# Note that this only works as an estimate, figures from ps don't tell the whole story.
+
+# Andrew Richards, www.acrconsulting.co.uk June 2018.
+
+: <<=cut
+
+=head1 NAME
+
+{{ar_munin_memory_pp_plugin_name}}
+
+=head1 DESCRIPTION
+
+Munin plugin to graph specified processes' %memory usage; uses the output of the
+'ps' command. Note that 'ps' output should not be considered fully accurate, so this
+plugin should be used to get an idea of trends of memory use; actual memory use will
+be a bit different; please read Internet posts on this subject to understand why.
+
+=head1 CONFIGURATION
+
+This plugin is configured by adjusting the Ansible configuration that generates the
+plugin script, so (at least currently) the settings for the script (basically the
+list of processes to be graphed) are set in the Ansible inventory. There are two
+special process names: 'kernel' sums the processes that show up as [process_name]
+in the ps listing; this is primarily kernel threads and system processes. 'other'
+is all 'ps' entries that aren't explicitly listed.
+
+=head1 MAGIC MARKERS
+
+  #%# family=auto
+  #%# capabilities=autoconf
+
+=head1 VERSION
+
+  $Id$
+
+=head1 AUTHOR
+
+Andrew Richards acrconsulting.co.uk, June 2018
+
+=head1 LICENSE
+
+GPLv2+
+
+=cut
+
+function show_config {
+    echo 'graph_title Per-process memory usage'
+    #echo "graph_order x y z"
+    echo "graph_args --base 1000 -r --lower-limit 0 --upper-limit 100"
+    echo 'graph_vlabel %memory'
+    echo 'graph_scale no'
+    echo 'graph_info This graph shows the %memory used by specified processes.'
+    echo 'graph_category system'
+    #echo 'graph_period second'
+
+{% for name in ar_munin_memory_pp_plugin_services -%}
+{# Couldn't get spacing to work cleanly without using jinja2 braces; also in awk script below #}
+{{"    "}}echo "{{name}}.label {{name}}"
+{#########echo "{{name}}.type GAUGE"#}
+{{"    "}}echo "{{name}}.draw AREASTACK"
+{{"    "}}echo "{{name}}.min 0"
+
+{% endfor -%}
+}
+
+function show_stats() {
+
+# notes on the awk code:
+#   $11~"^\\["        - to match ps [process_name] entries (typically kernel/system)
+#   $11~"^/" {sub...  - strip path components of process name
+#   $11~"^dovecot/"   - aggregate various dovecot process names as a single 'dovecot' entry
+
+    ps --no-headers auxw | \
+      awk '   BEGIN           {
+{% for name in ar_munin_memory_pp_plugin_services -%}
+{{"                               "}}services_list["{{name}}"]=1;
+{{"                               "}}mem_usage["{{name}}"]=0;
+{% endfor -%}
+{{"                             "}} };
+              $11~"^\\["      {$11="kernel"};
+              $11~"^/"        {sub("^.*/","",$11)};
+              $11~"^dovecot/" {$11="dovecot"};
+                              {if (!($11 in services_list)) $11="other"};
+                              {mem_usage[$11]+=$4};
+              END             {for (item in services_list)
+                                 if (item in mem_usage) print item ".value", mem_usage[item];
+                              }' 
+}
+
+if [ "$1" = "autoconf" ]; then
+    echo yes
+    exit 0
+fi
+
+if [ "$1" = "config" ]; then
+    show_config
+    exit 0
+fi
+
+show_stats
+

@@ -1,0 +1,11 @@
+---
+# defaults file for ar_munin_memory_per_process_plugin
+ar_munin_memory_pp_plugin_services:
+ - "init"
+ - "systemd"
+ - "kernel"
+ - "other"
+
+ar_munin_memory_pp_plugin_target_dir: "/usr/local/lib/munin-plugins"
+
+ar_munin_memory_pp_plugin_name: "memory_per_process"
