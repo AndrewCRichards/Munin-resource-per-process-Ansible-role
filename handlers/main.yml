@@ -1,5 +1,5 @@
 ---
-# handlers file for ar_munin_memory_per_process_plugin
+# handlers file for munin_resource_per_process
 - name: restart munin-node
   become: True
   service:

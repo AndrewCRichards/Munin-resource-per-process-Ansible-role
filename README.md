@@ -1,7 +1,7 @@
 Role Name
 =========
 
-Ansible role to generate and install custom Munin memory-per-process plugin
+Ansible role to generate and install custom Munin memory- and cpu- per-process plugins
 
 Requirements
 ------------
@@ -14,9 +14,8 @@ Role Variables
 
 These variables can be set for this role; see defaults/main.yml for their default values:
 
- - ar_munin_memory_pp_plugin_services: The list of processes to be graphed. These are process names as reported by 'ps', also special values 'kernel' (system/kernel entries shown [in square brackets]) and 'other' (aggregate of all non-specified processes)
- - ar_munin_memory_pp_plugin_target_dir
- - ar_munin_memory_pp_plugin_name
+ - munin_resource_pp_services: The list of processes to be graphed. These are process names as reported by 'ps', also special values 'kernel' (system/kernel entries shown [in square brackets]) and 'other' (aggregate of all non-specified processes)
+ - munin_resource_pp_target_dir
 
 Dependencies
 ------------
@@ -29,7 +28,7 @@ Example Playbook
 
     - hosts: my_servers
       roles:
-         - { role: ar_munin_memory_per_process_plugin, ar_munin_memory_pp_plugin_services: [ "apache2", "mysqld", "kernel", "other" ] }
+         - { role: munin_resource_per_process, munin_resource_pp_services: [ "apache2", "mysqld", "kernel", "other" ] }
 
 License
 -------

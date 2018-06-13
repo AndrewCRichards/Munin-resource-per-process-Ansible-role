@@ -2,7 +2,7 @@
 
 # {{ansible_managed}}
 
-# Plugin for Munin to pull out %memory usage for specified processes from 'ps' output.
+# Plugin for Munin to pull out %{{item.name}} usage for specified processes from 'ps' output.
 # Note that this only works as an estimate, figures from ps don't tell the whole story.
 
 # Package, license details:
@@ -30,26 +30,26 @@
 
 =head1 NAME
 
-{{ar_munin_memory_pp_plugin_name}}
+{{item.name}}{{munin_resource_pp_suffix}}
 
 =head1 DESCRIPTION
 
-Munin plugin to graph specified processes' %memory usage; uses the output of the
+Munin plugin to graph specified processes' %{{item.name}} usage; uses the output of the
 'ps' command. Note that 'ps' output should not be considered fully accurate, so this
-plugin should be used to get an idea of trends of memory use; actual memory use will
+plugin should be used to get an idea of trends of {{item.name}} use; actual {{item.name}} use will
 be a bit different; please read Internet posts on this subject to understand why.
 As well as the fundamental limitations of 'ps', intermittently-running processes
 that aren't running at the exact same time as 'ps' won't show up: The plugin is
 only really well-suited to daemon-type programs that run continuously. Similarly
-programs that have have intense brief spikes of memory use won't be accurately
+programs that have have intense brief spikes of {{item.name}} use won't be accurately
 graphed for the same reason.
 
 More info: http://free.acrconsulting.co.uk/other/munin-plugins.html#rpp
 
 =head1 CONFIGURATION
 
-This plugin is configured by adjusting the Ansible configuration that generates the
-plugin script, so (at least currently) the settings for the script (basically the
+This plugin is configured by adjusting the Ansible configuration that generates
+the plugin, so (at least currently) the settings for the script (basically the
 list of processes to be graphed) are set in the Ansible inventory. There are two
 special process names: 'kernel' sums the processes that show up as [process_name]
 in the ps listing; this is primarily kernel threads and system processes. 'other'
@@ -79,21 +79,18 @@ GPLv2
 =cut
 
 function show_config {
-    echo 'graph_title Per-process memory usage'
-    #echo "graph_order x y z"
+    echo 'graph_title Per-process {{item.name}} usage'
     echo "graph_args --base 1000 -r --lower-limit 0 --upper-limit 100"
-    echo 'graph_vlabel %memory'
+    echo 'graph_vlabel %{{item.name}}'
     echo 'graph_scale no'
-    echo 'graph_info This graph shows the %memory used by specified processes.'
+    echo 'graph_info This graph shows the %{{item.name}} used by specified processes.'
     echo 'graph_category processes'
-    #echo 'graph_period second'
 
-{% for name in ar_munin_memory_pp_plugin_services -%}
+{% for service in munin_resource_pp_services -%}
 {# Couldn't get spacing to work cleanly without using jinja2 braces; also in awk script below #}
-{{"    "}}echo "{{name}}.label {{name}}"
-{#########echo "{{name}}.type GAUGE"#}
-{{"    "}}echo "{{name}}.draw AREASTACK"
-{{"    "}}echo "{{name}}.min 0"
+{{"    "}}echo "{{service}}.label {{service}}"
+{{"    "}}echo "{{service}}.draw AREASTACK"
+{{"    "}}echo "{{service}}.min 0"
 
 {% endfor -%}
 }
@@ -106,19 +103,19 @@ function show_stats() {
 
     ps --no-headers auxw | \
       awk '   BEGIN           {
-{% for name in ar_munin_memory_pp_plugin_services -%}
-{{"                               "}}services_list["{{name}}"]=1; mem_usage["{{name}}"]=0;
+{% for service in munin_resource_pp_services -%}
+{{"                               "}}services_list["{{service}}"]=1; {{item.name}}_usage["{{service}}"]=0;
 {% endfor -%}
 {{"                             "}} };
               $11~"^\\["      {$11="kernel"};
               $11~"^/"        {sub("^.*/","",$11)};
-{% for mapping in ar_munin_memory_pp_plugin_mappings -%}
+{% for mapping in munin_resource_pp_mappings -%}
 {{"              "}}$11~"{{mapping.pattern}}"  {$11="{{mapping.newname}}"};
 {% endfor -%}
 {{"                              "}}{if (!($11 in services_list)) $11="other"};
-                              {mem_usage[$11]+=$4};
-              END             {for (item in services_list)
-                                 if (item in mem_usage) print item ".value", mem_usage[item];
+                              { {{item.name}}_usage[$11]+={{item.field}} };
+              END             {for (service in services_list)
+                                 if (service in {{item.name}}_usage) print service ".value", {{item.name}}_usage[service]{% if item.scale_factor != 1 %} / {{item.scale_factor}}{% endif %};
                               }' 
 }
 

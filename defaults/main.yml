@@ -1,16 +1,28 @@
 ---
-# defaults file for ar_munin_memory_per_process_plugin
-ar_munin_memory_pp_plugin_services:
+# defaults file for munin_resource_per_process
+munin_resource_pp_services:
  - "init"
  - "systemd"
  - "kernel"
  - "other"
 
-ar_munin_memory_pp_plugin_target_dir: "/usr/local/lib/munin-plugins"
+munin_resource_pp_target_dir: "/usr/local/lib/munin-plugins"
 
-ar_munin_memory_pp_plugin_name: "memory_per_process"
+# 'field' as understood by awk
+# 'scale_factor' for CPU since total CPU usage % is 100 * number-of-cores
+munin_resource_pp_resources:
+  - name: "memory"
+    plugin_name: "memory_per_process"
+    field: "$4"
+    scale_factor: 1
+  - name: "CPU"
+    plugin_name: "CPU_per_process"
+    field: "$3"
+    scale_factor: "{{ansible_processor_vcpus}}"
 
-ar_munin_memory_pp_plugin_mappings:
+munin_resource_pp_suffix: "_per_process"
+
+munin_resource_pp_mappings:
   - pattern: "^dovecot/"
     newname: "dovecot"
   - pattern: "^smtp"
