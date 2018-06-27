@@ -1,8 +1,8 @@
-Role Name
-=========
+Munin-resource-per-process
+==========================
 
-Munin-resource-per-process: Ansible role to generate and install custom Munin memory- and cpu- per-process plugins.
-See [project page](http://free.acrconsulting.co.uk/other/munin-plugins.html).
+Ansible role to generate and install custom Munin memory- and cpu- per-process plugins.
+See [project page](http://free.acrconsulting.co.uk/other/munin-plugins.html#rpp).
 
 Requirements
 ------------
